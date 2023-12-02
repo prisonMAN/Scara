@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include <QtMath>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -7,9 +8,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->armWidget->setSegment1Length(10);
-    ui->armWidget->setSegment2Length(10);
-    ui->armWidget->setTargetCoord({15, 5});
+    ui->armWidget->setSegment1Length(350);
+    ui->armWidget->setSegment2Length(350);
+    ui->armWidget->setSegment3Length(100);
+    ui->armWidget->setLink3Yaw(0);
+    ui->armWidget->setTargetCoord({0, 0});
 }
 
 MainWindow::~MainWindow()

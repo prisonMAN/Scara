@@ -8,15 +8,19 @@
 
 static constexpr double Rad2Deg = (180.0 / M_PI);
 
-ArmVisualizeWidget::ArmVisualizeWidget(QWidget *parent, double l1, double l2)
+ArmVisualizeWidget::ArmVisualizeWidget(QWidget *parent, double l1, double l2, double l3)
     : QFrame(parent)
     , ui(new Ui::ArmVisualizeWidget),
-    m_l1(l1), m_l2(l2)
+    handcoor(1),
+    m_l1(l1), m_l2(l2), m_l3(l3)
 {
     ui->setupUi(this);
 
     m_theta1 = 0;
     m_theta2 = 0;
+    m_theta3 = 0;
+    m_lasttheta1 = 0;
+    m_lasttheta2 = 0;
 }
 
 ArmVisualizeWidget::~ArmVisualizeWidget()
@@ -30,7 +34,8 @@ void ArmVisualizeWidget::paintEvent(QPaintEvent *event)
 
     auto w = width(), h = height(), minEdge = std::min(w, h);
     double l1Screen = m_l1 * m_coord2ScreenRatio,
-           l2Screen = m_l2 * m_coord2ScreenRatio;
+           l2Screen = m_l2 * m_coord2ScreenRatio,
+           l3Screen = m_l3 * m_coord2ScreenRatio;
 
     QPainter p(this);
 
@@ -56,6 +61,16 @@ void ArmVisualizeWidget::paintEvent(QPaintEvent *event)
     p.drawText(0, 0, QString("%2").arg(m_theta2));
     p.rotate((m_theta1 + m_theta2) * Rad2Deg);
     p.drawLine(QLineF(0, 0, 0, -l2Screen));
+
+    p.translate(0, -l2Screen); // Move to segment 3 axis
+
+    // Segment 3
+    p.setPen(QPen(Qt::darkBlue, 5));
+    p.setBrush(Qt::darkBlue);
+    p.rotate(-(m_theta1 + m_theta2) * Rad2Deg);
+    p.drawText(0, 0, QString("%3").arg(m_theta3));
+    p.rotate((m_theta1 + m_theta2 + m_theta3) * Rad2Deg);
+    p.drawLine(QLineF(0, 0, 0, -l3Screen));
 
     // Target point
     p.resetTransform();
@@ -86,8 +101,8 @@ void ArmVisualizeWidget::mouseMoveEvent(QMouseEvent *event)
         // Clamp to circle
         double norm = std::sqrt(std::pow(m_targetCoord.x(), 2) +
                                 std::pow(m_targetCoord.y(), 2));
-        if (norm > m_l1 + m_l2) {
-            m_targetCoord /= (norm / (m_l1 + m_l2));
+        if (norm > m_l1 + m_l2 + m_l3) {
+            m_targetCoord /= (norm / (m_l1 + m_l2 + m_l3));
         }
 
         qDebug() << "Target coord: " << m_targetCoord;
@@ -98,22 +113,58 @@ void ArmVisualizeWidget::mouseMoveEvent(QMouseEvent *event)
     }
 }
 
+void ArmVisualizeWidget::judgeHandcoor()
+{
+    if ((m_theta2 > 0.0 && m_theta2 < M_PI) || (m_theta2 > -2.0 * M_PI && m_theta2 < -M_PI)){
+        handcoor = true;
+    }
+    else{
+        handcoor = false;
+    }
+}
+
 void ArmVisualizeWidget::solve()
 {
-    /*
-     * # 计算第二个关节角度
-        D = (x**2 + y**2 - self.L1**2 - self.L2**2) / (2 * self.L1 * self.L2)
-        theta2 = math.atan2(-math.sqrt(1 - D**2), D)
+    judgeHandcoor();
 
-        # 计算第一个关节角度
-        theta1 = math.atan2(y, x) - math.atan2(self.L2 * math.sin(theta2), self.L1 + self.L2 * math.cos(theta2))
-     */
     auto x = m_targetCoord.x(), y = m_targetCoord.y();
     double D = ((x * x) + (y * y) - (m_l1 * m_l1) - (m_l2 * m_l2)) / (2 * m_l1 * m_l2);
 
-    m_theta2 = std::atan2(-std::sqrt(1 - (D * D)), D);
+    if(handcoor == true){
+        m_theta2 = std::atan2(std::sqrt(1 - (D * D)), D);
+    }
+    else{
+        m_theta2 = -std::atan2(std::sqrt(1 - (D * D)), D);
+    }
 
-    m_theta1 = std::atan2(y, x) - std::atan2(m_l2 * std::sin(m_theta2), m_l1 + m_l2 * std::cos(m_theta2));
+    m_theta1 = std::atan2(x, y) - std::atan2(m_l2 * std::sin(m_theta2), m_l1 + m_l2 * std::cos(m_theta2));
+
+    auto temp1 = abs((m_theta1 + 2.0 * M_PI) - m_lasttheta1);
+    auto temp2 = abs((m_theta1 - 2.0 * M_PI) - m_lasttheta1);
+    auto temp3 = abs(m_theta1 - m_lasttheta1);
+
+    if(temp1 < temp2 && temp1 < temp3){
+        m_theta1 = m_theta1 + 2.0 * M_PI;
+    }
+    else if(temp2 < temp1 && temp2 < temp3){
+        m_theta1 = m_theta1 - 2.0 * M_PI;
+    }
+
+    temp1 = abs((m_theta2 + 2.0 * M_PI) - m_lasttheta2);
+    temp2 = abs((m_theta2 - 2.0 * M_PI) - m_lasttheta2);
+    temp3 = abs(m_theta2 - m_lasttheta2);
+
+    if(temp1 < temp2 && temp1 < temp3){
+        m_theta2 = m_theta2 + 2.0 * M_PI;
+    }
+    else if(temp2 < temp1 && temp2 < temp3){
+        m_theta2 = m_theta2 - 2.0 * M_PI;
+    }
+
+    m_theta3 = m_yaw - m_theta1 - m_theta2;
+
+    m_lasttheta1 = m_theta1;
+    m_lasttheta2 = m_theta2;
 
     update();
 }
