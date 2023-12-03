@@ -113,20 +113,13 @@ void ArmVisualizeWidget::mouseMoveEvent(QMouseEvent *event)
     }
 }
 
-void ArmVisualizeWidget::judgeHandcoor()
+void ArmVisualizeWidget::setHandcoor(bool isright)
 {
-    if ((m_theta2 > 0.0 && m_theta2 < M_PI) || (m_theta2 > -2.0 * M_PI && m_theta2 < -M_PI)){
-        handcoor = true;
-    }
-    else{
-        handcoor = false;
-    }
+    handcoor = isright;
 }
 
 void ArmVisualizeWidget::solve()
 {
-    judgeHandcoor();
-
     auto x = m_targetCoord.x(), y = m_targetCoord.y();
     double D = ((x * x) + (y * y) - (m_l1 * m_l1) - (m_l2 * m_l2)) / (2 * m_l1 * m_l2);
 

@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->armWidget->setSegment3Length(100);
     ui->armWidget->setLink3Yaw(0);
     ui->armWidget->setTargetCoord({0, 0});
+    ui->armWidget->setHandcoor(true);
 }
 
 MainWindow::~MainWindow()

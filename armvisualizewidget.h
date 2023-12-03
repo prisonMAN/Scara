@@ -20,6 +20,7 @@ public:
     void setSegment3Length(double l3) { if (l3 <= 0) return; m_l3 = l3; solve(); }
     void setTargetCoord(QPointF p) { m_targetCoord = p; solve(); }
     void setLink3Yaw(double yaw) {m_yaw = yaw;}
+    void setHandcoor(bool isright);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -29,14 +30,13 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override { m_mousePress = false; }
 
 private:
-    void judgeHandcoor();
     void solve();
 
 private:
     Ui::ArmVisualizeWidget *ui;
 
     // Arm properties
-    bool handcoor; //初始为右手系，0为左手系1为右手系
+    bool handcoor; //初始为右手系，0为左手系,1为右手系
     double m_l1, m_l2, m_l3;
     double m_theta1, m_theta2, m_theta3,
            m_lasttheta1, m_lasttheta2;
